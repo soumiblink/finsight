@@ -1,6 +1,7 @@
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import IsAuthenticated
 from django.db.models import Sum
 
 from core.permissions import IsAnalystOrAdmin
@@ -16,7 +17,7 @@ class SummaryView(APIView):
 
 
 @api_view(['GET'])
-@permission_classes([IsAnalystOrAdmin])
+@permission_classes([IsAuthenticated])
 def summary(request):
     user = request.user
     income = Income.objects.filter(user=user).aggregate(total=Sum('amount'))['total'] or 0
@@ -30,7 +31,7 @@ def summary(request):
 
 
 @api_view(['GET'])
-@permission_classes([IsAnalystOrAdmin])
+@permission_classes([IsAuthenticated])
 def insights(request):
     user = request.user
     expenses_by_category = (

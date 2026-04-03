@@ -17,9 +17,9 @@ class ExpenseViewSet(ModelViewSet):
     serializer_class = ExpenseSerializer
 
     def get_permissions(self):
-        if self.action in ['create', 'update', 'partial_update', 'destroy']:
-            return [IsAdmin()]
-        return [IsAnalystOrAdmin()]
+        if self.request.method in ['GET']:
+            return [IsAuthenticated()]
+        return [IsAdmin()]
 
     def get_queryset(self):
         queryset = Expenses.objects.all()
@@ -31,8 +31,12 @@ class ExpenseViewSet(ModelViewSet):
         queryset = queryset.filter(user=user)
 
         category = self.request.query_params.get('category')
+        record_type = self.request.query_params.get('type')
         start_date = self.request.query_params.get('start_date')
         end_date = self.request.query_params.get('end_date')
+
+        if record_type:
+            queryset = queryset.filter(type=record_type)
 
         if category:
             queryset = queryset.filter(categories__title__icontains=category)
@@ -42,6 +46,19 @@ class ExpenseViewSet(ModelViewSet):
 
         if end_date:
             queryset = queryset.filter(added_at__date__lte=end_date)
+
+        # search by description
+        search = self.request.query_params.get('search')
+        if search:
+            queryset = queryset.filter(desc__icontains=search)
+
+        # ordering
+        ordering = self.request.query_params.get('ordering')
+        if ordering:
+            try:
+                queryset = queryset.order_by(ordering)
+            except Exception:
+                pass  # ignore invalid ordering fields
 
         return queryset
 
