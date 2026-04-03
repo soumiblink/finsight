@@ -6,7 +6,7 @@ from analytics.views import SummaryView
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('auth/', include('users.urls')),
+    path('api/users/', include('users.urls')),
     path('api/', include('records.urls')),
     path('api/analytics/summary/', SummaryView.as_view()),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
