@@ -6,8 +6,31 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import permission_classes, api_view
+from rest_framework.viewsets import ModelViewSet
 
 from .models import Income, Expenses
+from .serializers import ExpenseSerializer, CreateExpenseSerializer
+from core.permissions import IsAdmin, IsAnalystOrAdmin
+
+
+class ExpenseViewSet(ModelViewSet):
+    serializer_class = ExpenseSerializer
+
+    def get_permissions(self):
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
+            return [IsAdmin()]
+        return [IsAnalystOrAdmin()]
+
+    def get_queryset(self):
+        return Expenses.objects.filter(user=self.request.user)
+
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return CreateExpenseSerializer
+        return ExpenseSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
 
 
 @api_view(http_method_names=['GET'])

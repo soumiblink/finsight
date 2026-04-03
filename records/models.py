@@ -1,9 +1,9 @@
 from django.db import models
 from django.db.models import Sum
-from django.contrib.auth.models import User
 from django.utils import timezone
 from expense_tracker.utils import resize_photo, delete_photoURL
 from expense_tracker.validators import number_lt_zero
+from django.conf import settings
 
 
 class Budget(models.Model):
@@ -13,7 +13,7 @@ class Budget(models.Model):
     _from = models.DateTimeField(verbose_name="from", default=timezone.now)
     to = models.DateTimeField(verbose_name="to")
     total_amount = models.FloatField(validators=[number_lt_zero])
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     issued_at = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=timezone.now)
 
@@ -41,8 +41,7 @@ class Source(models.Model):
     title = models.CharField(max_length=50)
     desc = models.CharField(max_length=250, blank=True, null=True)
     is_secure = models.BooleanField(default=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
-
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     def __str__(self):
         return self.title
 
@@ -51,7 +50,7 @@ class Category(models.Model):
 
     title = models.CharField(max_length=50)
     desc = models.CharField(max_length=250, blank=True, null=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
 
     def __str__(self):
         return self.title
@@ -63,7 +62,7 @@ class Income(models.Model):
     amount = models.FloatField()
     desc = models.CharField(max_length=200, blank=True, null=True)
     added_at = models.DateTimeField(auto_now_add=True)
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     source = models.ManyToManyField(Source, blank=True)
 
     class Meta:
@@ -78,7 +77,7 @@ class Expenses(models.Model):
     title = models.CharField(max_length=50)
     desc = models.CharField(max_length=250, blank=True)
     amount = models.FloatField()
-    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     added_at = models.DateTimeField(auto_now_add=True)
     categories = models.ManyToManyField(Category, blank=True)
     budget = models.ForeignKey(Budget, null=False, on_delete=models.CASCADE)

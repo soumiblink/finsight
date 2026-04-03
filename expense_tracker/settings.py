@@ -28,8 +28,8 @@ INSTALLED_APPS = [
     # Your apps
     'users.apps.UsersConfig',
     'records.apps.RecordsConfig',
-    # 'analytics',
-    # 'core',
+    'analytics',
+    'core',
 ]
 
 # ========================
