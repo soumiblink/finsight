@@ -1,8 +1,8 @@
 from django.db import models
 from django.db.models import Sum
 from django.utils import timezone
-from expense_tracker.utils import resize_photo, delete_photoURL
-from expense_tracker.validators import number_lt_zero
+from finsight_core.utils import resize_photo, delete_photoURL
+from finsight_core.validators import number_lt_zero
 from django.conf import settings
 
 

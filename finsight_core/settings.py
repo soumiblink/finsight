@@ -46,7 +46,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'expense_tracker.urls'
+ROOT_URLCONF = 'finsight_core.urls'
 
 # ========================
 # REST FRAMEWORK
@@ -88,7 +88,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'expense_tracker.wsgi.application'
+WSGI_APPLICATION = 'finsight_core.wsgi.application'
 
 # ========================
 # DATABASE
