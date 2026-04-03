@@ -1,8 +1,15 @@
 from pathlib import Path
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY")
+DEBUG = os.getenv("DEBUG") == "True"
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = 'dev-key'
+
 
 DEBUG = True
 
@@ -148,3 +155,15 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS
 # ========================
 CORS_ALLOW_ALL_ORIGINS = True
+
+# ========================
+# JWT LIFETIMES
+# ========================
+from datetime import timedelta
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=30),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=7),
+    'ROTATE_REFRESH_TOKENS': False,
+    'AUTH_HEADER_TYPES': ('Bearer',),
+}

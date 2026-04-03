@@ -21,8 +21,9 @@ export function AuthProvider({ children }) {
     setError(null)
     try {
       const res = await loginRequest({ username, password })
-      const { access } = res.data
+      const { access, refresh } = res.data
       localStorage.setItem('access_token', access)
+      if (refresh) localStorage.setItem('refresh_token', refresh)
       const userData = res.data.user ?? { username }
       localStorage.setItem('user', JSON.stringify(userData))
       setUser(userData)
@@ -58,6 +59,7 @@ export function AuthProvider({ children }) {
 
   const logout = () => {
     localStorage.removeItem('access_token')
+    localStorage.removeItem('refresh_token')
     localStorage.removeItem('user')
     setUser(null)
     navigate('/')
