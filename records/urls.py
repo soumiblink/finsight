@@ -3,9 +3,13 @@ from .views import base_information
 from .views_income import (update_income, income, update_sources, sources)
 from .views_expense import (
     expenses, upgrade_categories, categories, upgrade_expense)
+from .views_budget import budgets, budget_detail
+
 urlpatterns = [
 
     path('info', base_information, name="base_info"),
+    path('budgets', budgets, name="budgets"),
+    path('budgets/<int:pk>', budget_detail, name="budget_detail"),
     path('sources', sources, name="sources"),
     path('sources/<int:pk>', update_sources, name='update_sources'),
     path('income', income, name='income'),

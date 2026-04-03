@@ -28,30 +28,6 @@ def expenses(request: Request) -> Optional[Response]:
     if request.method == 'POST':
         data = request.data.copy()
         data["user"] = request.user.pk
-        # if request.data.get('categories'):
-        #     categories = request.data.pop('categories')
-        #     if categories:
-        #         list_categories = []
-        #         for category in categories:
-        #             check_category = Category.objects.filter(
-        #                 pk=category['id']).first()
-        #             if check_category:
-
-        #                 s_category = CategorySerializer(
-        #                     check_category, many=False)
-
-        #                 list_categories.append(
-        #                     {'user': request.user.pk, **s_category.data})
-        #     data['categories'] = list_categories
-        # if request.data.get('budget'):
-        #     budget = request.data.pop('budget')
-
-        #     if budget:
-        #         check_budget = Budget.objects.filter(pk=budget['id']).first()
-        #         if check_budget:
-        #             s_budget = BudgetSerializer(check_budget, many=False)
-        #             user_budget = {'user': request.user.pk, **s_budget.data}
-        #             data['budget'] = user_budget
 
         serialized_expense = CreateExpenseSerializer(data=data)
 
@@ -128,19 +104,16 @@ def upgrade_categories(request: Request, pk: int) -> Optional[Response]:
 
     if request.method == 'PUT':
         data = {**request.data, "user": request.user.pk}
+        try:
+            category = Category.objects.get(pk=pk, user=request.user.pk)
+        except Category.DoesNotExist:
+            return Response({'message': 'category doesn\'t exist'}, status=status.HTTP_404_NOT_FOUND)
 
-        category = Category.objects.get(pk=pk)
-
-        if category:
-
-            category_serializer = CategorySerializer(category, data=data)
-            if category_serializer.is_valid():
-                category_serializer.save()
-                return Response(category_serializer.data, status=status.HTTP_205_RESET_CONTENT)
-
-            return Response(category_serializer.errors, status=status.HTTP_424_FAILED_DEPENDENCY)
-        else:
-            return Response({'message': 'source don\'t exists'}, status=status.HTTP_404_NOT_FOUND)
+        category_serializer = CategorySerializer(category, data=data)
+        if category_serializer.is_valid():
+            category_serializer.save()
+            return Response(category_serializer.data, status=status.HTTP_205_RESET_CONTENT)
+        return Response(category_serializer.errors, status=status.HTTP_424_FAILED_DEPENDENCY)
 
     if request.method == 'DELETE':
         category_exists = Category.objects.filter(user=user, pk=pk)

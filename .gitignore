@@ -11,3 +11,8 @@ benchmark/
 *.yml
 backup/
 .env
+
+# Frontend
+finsight-frontend/node_modules
+finsight-frontend/dist
+finsight-frontend/.env.local

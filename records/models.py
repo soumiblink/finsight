@@ -15,7 +15,7 @@ class Budget(models.Model):
     total_amount = models.FloatField(validators=[number_lt_zero])
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     issued_at = models.DateTimeField(auto_now_add=True)
-    updated = models.DateTimeField(auto_now=timezone.now)
+    updated = models.DateTimeField(auto_now=True)
 
     @property
     def amount_used(self):

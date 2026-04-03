@@ -19,7 +19,7 @@ def sources(request: Request) -> Response:
         return Response(source_serializer.data, status=status.HTTP_200_OK)
 
     if request.method == 'POST':
-        data = request.data
+        data = request.data.copy()
         data['user'] = request.user.pk
         source_serializer = SourceSerializer(data=data)
         if source_serializer.is_valid():
@@ -35,24 +35,25 @@ def update_sources(request: Request, pk: int) -> Response:
 
     if request.method == 'PUT':
         data = {**request.data, "user": user}
-        source_exists = Source.objects.get(pk=pk)
+        source_exists = Source.objects.filter(pk=pk, user=user).first()
 
-        if source_exists:
-            source_serializer = SourceSerializer(source_exists, data=data)
+        if not source_exists:
+            raise NotFound('source doesn\'t exist')
 
-            if source_serializer.is_valid():
-                source_serializer.save()
-                return Response(source_serializer.data, status=status.HTTP_205_RESET_CONTENT)
+        source_serializer = SourceSerializer(source_exists, data=data)
 
-            return Response(source_serializer.errors, status=status.HTTP_424_FAILED_DEPENDENCY)
-        raise NotFound('source don\'t exists', code=status.HTTP_404_NOT_FOUND)
+        if source_serializer.is_valid():
+            source_serializer.save()
+            return Response(source_serializer.data, status=status.HTTP_205_RESET_CONTENT)
+
+        return Response(source_serializer.errors, status=status.HTTP_424_FAILED_DEPENDENCY)
 
     if request.method == 'DELETE':
         source_exists = Source.objects.filter(user=user, pk=pk)
         if source_exists:
             source_exists.delete()
             return Response({'detail': 'the source has been deleted '}, status=status.HTTP_204_NO_CONTENT)
-        raise NotFound('source dont\'t exists', code=status.HTTP_404_NOT_FOUND)
+        raise NotFound('source doesn\'t exist', code=status.HTTP_404_NOT_FOUND)
 
 
 @api_view(http_method_names=['GET', 'POST'])

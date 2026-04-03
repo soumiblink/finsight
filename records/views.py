@@ -36,7 +36,7 @@ class ExpenseViewSet(ModelViewSet):
         end_date = self.request.query_params.get('end_date')
 
         if record_type:
-            queryset = queryset.filter(type=record_type)
+            pass  # Expenses model has no 'type' field — filter removed to prevent FieldError
 
         if category:
             queryset = queryset.filter(categories__title__icontains=category)

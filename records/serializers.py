@@ -4,6 +4,9 @@ from .models import Budget, Expenses, Source, Category, Income
 
 
 class BudgetSerializer(serializers.ModelSerializer):
+    amount_used = serializers.ReadOnlyField()
+    amount_left = serializers.ReadOnlyField()
+    has_expired = serializers.ReadOnlyField()
 
     class Meta:
         model = Budget
