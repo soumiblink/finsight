@@ -1,9 +1,16 @@
 from rest_framework import serializers
 from rest_framework.validators import ValidationError
-from plans.models import Budget
-from .models import Expenses, Source, Category, Income
-from django.contrib.auth.models import User
-from plans.serializers import BudgetSerializer
+from .models import Budget, Expenses, Source, Category, Income
+
+
+class BudgetSerializer(serializers.ModelSerializer):
+
+    class Meta:
+        model = Budget
+        fields = '__all__'
+        extra_kwargs = {
+            'user': {'write_only': True}
+        }
 
 
 class SourceSerializer(serializers.ModelSerializer):
@@ -53,28 +60,7 @@ class CreateIncomeSerializer(serializers.ModelSerializer):
 class ExpenseSerializer(serializers.ModelSerializer):
 
     categories = CategorySerializer(many=True, required=False)
-    budget = BudgetSerializer(many=False, read_only=False)
-
-    # def create(self, validated_data):
-    #     categories = validated_data.pop('categories')
-    #     budget = validated_data.pop('budget')
-    #     budget_object = Budget.objects.filter(**budget).first()
-
-    #     expense = Expenses.objects.create(
-    #         **validated_data, budget=budget_object)
-    #     for category in categories:
-    #         category_object = Category.objects.filter(**category).first()
-    #         if category_object:
-    #             expense.categories.add(category_object.pk)
-    #     return expense
-
-    # def validate(self, attrs):
-    #     amount: float = attrs['amount']
-    #     budget: Budget = Budget(**attrs['budget'])
-    #     if budget.amount_left < amount:
-    #         raise ValidationError(
-    #             detail="This expense can't fit to this budget ")
-    #     return super().validate(attrs)
+    budget = BudgetSerializer(many=False, read_only=True)
 
     class Meta:
         model = Expenses
@@ -94,13 +80,11 @@ class CreateExpenseSerializer(serializers.ModelSerializer):
         }
 
     def validate(self, attrs):
-
         amount: float = attrs['amount']
         budget: Budget = attrs['budget']
-
         if budget.amount_left < amount:
             raise ValidationError(
-                detail=f"This amount: {amount} is too large to  fit in  budget : {budget} ")
+                detail=f"This amount: {amount} is too large to fit in budget: {budget}")
         return super().validate(attrs)
 
 
@@ -121,14 +105,11 @@ class UpdateExpenseSerializer(serializers.ModelSerializer):
 
         if old_budget == budget:
             if budget.amount_left + old_amount < amount:
-                print("here")
                 raise ValidationError(
-                    detail=f"This amount: {amount} is too large to  fit in  budget : {budget} ")
+                    detail=f"This amount: {amount} is too large to fit in budget: {budget}")
         else:
             if budget.amount_left < amount:
-                print("now here")
                 raise ValidationError(
-                    detail=f"This amount: {amount} is too large to  fit in  budget : {budget} ")
+                    detail=f"This amount: {amount} is too large to fit in budget: {budget}")
 
         return super().update(instance, validated_data)
-

@@ -1,8 +1,7 @@
 from django.contrib.auth.models import User
 from django.forms import ValidationError, ModelForm
 
-from plans.models import Budget
-from .models import Expenses, Income
+from .models import Budget, Expenses, Income
 
 
 class ExpenseForm(ModelForm):

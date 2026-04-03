@@ -1,10 +1,10 @@
 from django.apps import AppConfig
 
 
-class PlansConfig(AppConfig):
+class UsersConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'plans'
+    name = 'users'
 
     def ready(self):
-        import plans.signals
+        import users.signals
         return super().ready()

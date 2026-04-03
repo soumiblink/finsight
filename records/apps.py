@@ -1,12 +1,10 @@
 from django.apps import AppConfig
 
 
-class BaseConfig(AppConfig):
+class RecordsConfig(AppConfig):
     default_auto_field = 'django.db.models.BigAutoField'
-    name = 'base'
+    name = 'records'
 
     def ready(self):
-        # using receivers
-        import base.signals
-
+        import records.signals
         return super().ready()
