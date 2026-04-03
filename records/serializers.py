@@ -56,6 +56,11 @@ class CreateIncomeSerializer(serializers.ModelSerializer):
             'amount': {'required': True}
         }
 
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Amount must be positive")
+        return value
+
 
 class ExpenseSerializer(serializers.ModelSerializer):
 
@@ -78,6 +83,11 @@ class CreateExpenseSerializer(serializers.ModelSerializer):
         extra_kwargs = {
             'user': {'write_only': True}
         }
+
+    def validate_amount(self, value):
+        if value <= 0:
+            raise serializers.ValidationError("Amount must be positive")
+        return value
 
     def validate(self, attrs):
         amount: float = attrs['amount']

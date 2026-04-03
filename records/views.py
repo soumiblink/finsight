@@ -22,7 +22,28 @@ class ExpenseViewSet(ModelViewSet):
         return [IsAnalystOrAdmin()]
 
     def get_queryset(self):
-        return Expenses.objects.filter(user=self.request.user)
+        queryset = Expenses.objects.all()
+        user = self.request.user
+
+        if not user.is_authenticated:
+            return queryset.none()
+
+        queryset = queryset.filter(user=user)
+
+        category = self.request.query_params.get('category')
+        start_date = self.request.query_params.get('start_date')
+        end_date = self.request.query_params.get('end_date')
+
+        if category:
+            queryset = queryset.filter(categories__title__icontains=category)
+
+        if start_date:
+            queryset = queryset.filter(added_at__date__gte=start_date)
+
+        if end_date:
+            queryset = queryset.filter(added_at__date__lte=end_date)
+
+        return queryset
 
     def get_serializer_class(self):
         if self.action == 'create':
