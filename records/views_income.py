@@ -1,112 +1,103 @@
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.exceptions import NotFound, APIException
-from .serializers import (CreateIncomeSerializer,
-                          IncomeSerializer, SourceSerializer)
-from .models import Income,  Source
+
+from core.permissions import IsViewerOrAbove, IsAdmin
+from .serializers import CreateIncomeSerializer, IncomeSerializer, SourceSerializer
+from .models import Income, Source
 
 
-@api_view(http_method_names=['GET', 'POST'])
-@permission_classes([IsAuthenticated])
+@api_view(['GET', 'POST'])
 def sources(request: Request) -> Response:
 
     if request.method == 'GET':
-        sources = Source.objects.filter(user=request.user)
-        source_serializer = SourceSerializer(sources, many=True)
-        return Response(source_serializer.data, status=status.HTTP_200_OK)
+        if not IsViewerOrAbove().has_permission(request, None):
+            return _forbidden()
+        qs = Source.objects.filter(user=request.user)
+        return Response(SourceSerializer(qs, many=True).data, status=status.HTTP_200_OK)
 
     if request.method == 'POST':
+        if not IsAdmin().has_permission(request, None):
+            return _forbidden()
         data = request.data.copy()
         data['user'] = request.user.pk
-        source_serializer = SourceSerializer(data=data)
-        if source_serializer.is_valid():
-            source_serializer.save()
-            return Response(source_serializer.data, status=status.HTTP_201_CREATED)
-        return Response(source_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer = SourceSerializer(data=data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_201_CREATED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(http_method_names=['PUT', 'DELETE'])
-@permission_classes([IsAuthenticated])
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAdmin])
 def update_sources(request: Request, pk: int) -> Response:
     user = request.user.pk
 
     if request.method == 'PUT':
-        data = {**request.data, "user": user}
-        source_exists = Source.objects.filter(pk=pk, user=user).first()
-
-        if not source_exists:
-            raise NotFound('source doesn\'t exist')
-
-        source_serializer = SourceSerializer(source_exists, data=data)
-
-        if source_serializer.is_valid():
-            source_serializer.save()
-            return Response(source_serializer.data, status=status.HTTP_205_RESET_CONTENT)
-
-        return Response(source_serializer.errors, status=status.HTTP_424_FAILED_DEPENDENCY)
+        source = Source.objects.filter(pk=pk, user=user).first()
+        if not source:
+            raise NotFound('Source not found')
+        serializer = SourceSerializer(source, data={**request.data, 'user': user})
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     if request.method == 'DELETE':
-        source_exists = Source.objects.filter(user=user, pk=pk)
-        if source_exists:
-            source_exists.delete()
-            return Response({'detail': 'the source has been deleted '}, status=status.HTTP_204_NO_CONTENT)
-        raise NotFound('source doesn\'t exist', code=status.HTTP_404_NOT_FOUND)
+        qs = Source.objects.filter(user=user, pk=pk)
+        if not qs.exists():
+            raise NotFound('Source not found')
+        qs.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
 
-@api_view(http_method_names=['GET', 'POST'])
-@permission_classes([IsAuthenticated])
+@api_view(['GET', 'POST'])
 def income(request: Request) -> Response:
 
     if request.method == 'GET':
-        incomes = Income.objects.filter(user=request.user)
-        serialized_incomes = IncomeSerializer(incomes, many=True)
-        return Response(serialized_incomes.data, status=status.HTTP_200_OK)
+        if not IsViewerOrAbove().has_permission(request, None):
+            return _forbidden()
+        qs = Income.objects.filter(user=request.user)
+        return Response(IncomeSerializer(qs, many=True).data, status=status.HTTP_200_OK)
 
     if request.method == 'POST':
-
-        data = {**request.data, "user": request.user.pk}
-
-        serialized_income = CreateIncomeSerializer(data=data)
-
-        if serialized_income.is_valid():
-            newIncome = serialized_income.save()
-
-            reponse = IncomeSerializer(newIncome, many=False)
-
-            return Response(reponse.data, status=status.HTTP_201_CREATED)
-        return Response(serialized_income.errors, status=status.HTTP_400_BAD_REQUEST)
+        if not IsAdmin().has_permission(request, None):
+            return _forbidden()
+        data = {**request.data, 'user': request.user.pk}
+        serializer = CreateIncomeSerializer(data=data)
+        if serializer.is_valid():
+            return Response(
+                IncomeSerializer(serializer.save()).data,
+                status=status.HTTP_201_CREATED,
+            )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-@api_view(http_method_names=['PUT', 'DELETE'])
-@permission_classes([IsAuthenticated])
+@api_view(['PUT', 'DELETE'])
+@permission_classes([IsAdmin])
 def update_income(request: Request, pk: int) -> Response:
 
-    if request.method == "PUT":
-        data = {**request.data, "user": request.user.pk}
-        income = Income.objects.filter(user=request.user.pk, pk=pk).first()
+    if request.method == 'PUT':
+        income_obj = Income.objects.filter(user=request.user.pk, pk=pk).first()
+        if not income_obj:
+            raise APIException('Income not found', code=status.HTTP_404_NOT_FOUND)
+        serializer = CreateIncomeSerializer(income_obj, data={**request.data, 'user': request.user.pk})
+        if serializer.is_valid():
+            return Response(IncomeSerializer(serializer.save()).data, status=status.HTTP_202_ACCEPTED)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-        if income:
-            serialized_income = CreateIncomeSerializer(income, data=data)
+    if request.method == 'DELETE':
+        income_obj = Income.objects.filter(user=request.user.pk, pk=pk).first()
+        if not income_obj:
+            raise NotFound('Income not found')
+        income_obj.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
-            if serialized_income.is_valid():
-                data = serialized_income.save()
 
-                reponse = IncomeSerializer(data, many=False)
-
-                return Response(reponse.data, status=status.HTTP_202_ACCEPTED)
-            return Response(serialized_income.errors, status=status.HTTP_424_FAILED_DEPENDENCY)
-
-        raise APIException(
-            "Income of this credentials don't exits", code=status.HTTP_400_BAD_REQUEST)
-
-    if request.method == "DELETE":
-        income_existis = Income.objects.filter(
-            user=request.user.pk, pk=pk).first()
-        if income_existis:
-            income_existis.delete()
-            return Response({'detail': 'Income removed succesfully'}, status=status.HTTP_204_NO_CONTENT)
-        raise NotFound('Counld not find this income',
-                       code=status.HTTP_404_NOT_FOUND)
+def _forbidden():
+    return Response(
+        {'error': 'You do not have permission to perform this action.'},
+        status=status.HTTP_403_FORBIDDEN,
+    )

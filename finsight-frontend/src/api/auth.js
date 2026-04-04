@@ -7,3 +7,6 @@ export const loginRequest = (credentials) =>
 // POST /api/users/auth/register/
 export const registerRequest = (data) =>
   api.post('/users/auth/register/', data)
+
+// GET /api/users/me/
+export const getMeRequest = () => api.get('/users/me/')
