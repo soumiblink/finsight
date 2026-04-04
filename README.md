@@ -139,6 +139,7 @@ All endpoints are prefixed with `/api/`.
 | GET | `summary/` | Total income, expenses, balance | Analyst, Admin |
 | GET | `insights/` | Expense breakdown by category | Analyst, Admin |
 | GET | `monthly-trends/` | Monthly expense totals | Analyst, Admin |
+| GET | `recent/?limit=10` | Most recent income and expense records combined | Any authenticated |
 
 ---
 
@@ -346,6 +347,10 @@ Analytics logic is intentionally isolated from the records data layer. The `anal
 **Budget-expense relationship**
 
 Expenses require a budget foreign key, and the serializer validates that the expense amount does not exceed the budget's remaining balance at write time. This enforces financial integrity at the API layer rather than relying on the client to check.
+
+**Separate Income and Expense models instead of a unified transaction type**
+
+The assignment describes a `type` field (income/expense) on a single record model. This project uses two separate models — `Income` and `Expenses` — instead. The reasoning: income and expenses have structurally different relationships (income links to `Source`, expenses link to `Budget` and `Category`). A single model with a `type` discriminator would require nullable foreign keys and conditional validation, which adds complexity without benefit. The trade-off is that there is no single endpoint to query all financial entries by type — instead, `GET /api/analytics/recent/` provides a combined recent activity feed with a `record_type` field on each entry.
 
 **Frontend as a demo layer**
 

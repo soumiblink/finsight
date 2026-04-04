@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from core.permissions import IsAnalystOrAdmin
+from core.permissions import IsAnalystOrAdmin, IsViewerOrAbove
 from records.models import Expenses, Income
 from .services import get_summary
 
@@ -61,3 +61,38 @@ def monthly_trends(request):
         .order_by('month')
     )
     return Response(list(data))
+
+
+@api_view(['GET'])
+@permission_classes([IsViewerOrAbove])
+def recent_activity(request):
+    """
+    Returns the 10 most recent income and expense records combined,
+    each tagged with a 'record_type' field for client-side distinction.
+    """
+    limit = int(request.query_params.get('limit', 10))
+
+    recent_income = (
+        Income.objects
+        .filter(user=request.user)
+        .values('id', 'title', 'amount', 'desc', 'added_at')
+        .order_by('-added_at')[:limit]
+    )
+
+    recent_expenses = (
+        Expenses.objects
+        .filter(user=request.user)
+        .values('id', 'title', 'amount', 'desc', 'added_at')
+        .order_by('-added_at')[:limit]
+    )
+
+    income_list = [{'record_type': 'income', **r} for r in recent_income]
+    expense_list = [{'record_type': 'expense', **r} for r in recent_expenses]
+
+    combined = sorted(
+        income_list + expense_list,
+        key=lambda r: r['added_at'],
+        reverse=True,
+    )[:limit]
+
+    return Response(combined)
