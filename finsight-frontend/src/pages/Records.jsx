@@ -1,9 +1,11 @@
 import { useEffect, useState, useCallback } from 'react'
+import { Plus, Search, X, Filter } from 'lucide-react'
+import toast from 'react-hot-toast'
 import Layout from '../components/Layout'
 import Card from '../components/ui/Card'
 import Button from '../components/ui/Button'
 import Modal from '../components/ui/Modal'
-import Spinner from '../components/ui/Spinner'
+import { SkeletonRow } from '../components/ui/SkeletonRow'
 import EmptyState from '../components/ui/EmptyState'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -15,29 +17,31 @@ import {
 const TABS = ['expenses', 'income', 'budgets']
 const HIDDEN = ['user', 'receipt']
 
+function defaultTo() {
+  const d = new Date(); d.setDate(d.getDate() + 30)
+  return d.toISOString().slice(0, 16)
+}
+
 const INIT = {
   expenses: { title: '', amount: '', desc: '', budget: '' },
   income:   { title: '', amount: '', desc: '' },
   budgets:  { title: '', total_amount: '', desc: '', to: defaultTo() },
 }
 
-function defaultTo() {
-  const d = new Date(); d.setDate(d.getDate() + 30)
-  return d.toISOString().slice(0, 16)
-}
-
 function renderCell(value) {
   if (value === null || value === undefined) return <span className="text-gray-300">—</span>
   if (typeof value === 'boolean') return value
-    ? <span className="text-emerald-600 font-medium">Yes</span>
-    : <span className="text-rose-500 font-medium">No</span>
+    ? <span className="inline-flex items-center gap-1 text-emerald-600 font-medium text-xs bg-emerald-50 px-2 py-0.5 rounded-full">Yes</span>
+    : <span className="inline-flex items-center gap-1 text-rose-500 font-medium text-xs bg-rose-50 px-2 py-0.5 rounded-full">No</span>
   if (typeof value === 'object') return value.title ?? JSON.stringify(value)
   if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value))
-    return new Date(value).toLocaleDateString()
+    return new Date(value).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+  if (typeof value === 'number' && String(value).includes('.'))
+    return `$${Number(value).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
   return String(value)
 }
 
-const inputCls = 'w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50'
+const inputCls = 'w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50 transition-colors'
 
 export default function Records() {
   const { user } = useAuth()
@@ -49,17 +53,18 @@ export default function Records() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // filters
   const [search, setSearch] = useState('')
   const [filterCategory, setFilterCategory] = useState('')
   const [filterStart, setFilterStart] = useState('')
   const [filterEnd, setFilterEnd] = useState('')
 
-  // modal
   const [showForm, setShowForm] = useState(false)
   const [formData, setFormData] = useState(INIT.expenses)
   const [formError, setFormError] = useState(null)
   const [submitting, setSubmitting] = useState(false)
+
+  const hasFilters = search || filterCategory || filterStart || filterEnd
+  const clearFilters = () => { setSearch(''); setFilterCategory(''); setFilterStart(''); setFilterEnd('') }
 
   const fetchBudgets = useCallback(async () => {
     try {
@@ -91,7 +96,7 @@ export default function Records() {
     setFormData(INIT[tab])
     setShowForm(false)
     setFormError(null)
-    setSearch(''); setFilterCategory(''); setFilterStart(''); setFilterEnd('')
+    clearFilters()
   }, [tab])
 
   const handleDelete = async (id) => {
@@ -102,7 +107,11 @@ export default function Records() {
       else await deleteBudget(id)
       setRecords((p) => p.filter((r) => r.id !== id))
       if (tab === 'budgets') fetchBudgets()
-    } catch (e) { alert('Delete failed.'); console.error(e) }
+      toast.success('Record deleted')
+    } catch (e) {
+      toast.error('Delete failed')
+      console.error(e)
+    }
   }
 
   const handleCreate = async (e) => {
@@ -114,16 +123,18 @@ export default function Records() {
       setShowForm(false); setFormData(INIT[tab])
       await fetchRecords()
       if (tab === 'budgets') fetchBudgets()
+      toast.success(`${tab.slice(0, -1).charAt(0).toUpperCase() + tab.slice(1, -1)} created!`)
     } catch (err) {
       const d = err.response?.data
-      setFormError(d ? (typeof d === 'string' ? d : JSON.stringify(d, null, 2)) : 'Failed to save.')
+      const msg = d ? (typeof d === 'string' ? d : JSON.stringify(d, null, 2)) : 'Failed to save.'
+      setFormError(msg)
+      toast.error('Failed to save record')
       console.error(err)
     } finally { setSubmitting(false) }
   }
 
   const field = (k) => (e) => setFormData((p) => ({ ...p, [k]: e.target.value }))
 
-  // client-side filter
   const filtered = records.filter((r) => {
     const s = search.toLowerCase()
     const matchSearch = !s || Object.values(r).some((v) => String(v).toLowerCase().includes(s))
@@ -141,16 +152,18 @@ export default function Records() {
 
   return (
     <Layout>
-      <div className="p-8">
+      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <div>
             <h1 className="text-2xl font-bold text-gray-900">Records</h1>
-            <p className="text-gray-500 text-sm mt-1">Manage your financial records</p>
+            <p className="text-gray-500 text-sm mt-0.5">Manage your financial records</p>
           </div>
           {isAdmin && (
             <Button onClick={() => { setShowForm(true); setFormError(null) }}>
-              + {addLabel}
+              <Plus size={15} />
+              {addLabel}
             </Button>
           )}
         </div>
@@ -159,8 +172,10 @@ export default function Records() {
         <div className="flex gap-2 mb-5">
           {TABS.map((t) => (
             <button key={t} onClick={() => setTab(t)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-colors ${
-                tab === t ? 'bg-blue-600 text-white shadow-sm' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50'
+              className={`px-4 py-2 rounded-xl text-sm font-medium capitalize transition-all duration-150 ${
+                tab === t
+                  ? 'bg-blue-600 text-white shadow-sm shadow-blue-200'
+                  : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50 hover:border-gray-300'
               }`}>
               {t}
             </button>
@@ -169,52 +184,88 @@ export default function Records() {
 
         {/* Filters */}
         <Card className="p-4 mb-5">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <input value={search} onChange={(e) => setSearch(e.target.value)}
-              placeholder="🔍 Search…" className={inputCls} />
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="relative flex-1 min-w-[160px]">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input value={search} onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search records…"
+                className="w-full border border-gray-200 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-gray-50" />
+            </div>
             <input value={filterCategory} onChange={(e) => setFilterCategory(e.target.value)}
-              placeholder="Filter by category" className={inputCls} />
+              placeholder="Category" className={`${inputCls} flex-1 min-w-[120px]`} />
             <input type="date" value={filterStart} onChange={(e) => setFilterStart(e.target.value)}
-              className={inputCls} />
+              className={`${inputCls} flex-1 min-w-[130px]`} />
             <input type="date" value={filterEnd} onChange={(e) => setFilterEnd(e.target.value)}
-              className={inputCls} />
+              className={`${inputCls} flex-1 min-w-[130px]`} />
+            {hasFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="flex-shrink-0">
+                <X size={13} />
+                Clear
+              </Button>
+            )}
           </div>
+          {hasFilters && (
+            <p className="text-xs text-gray-400 mt-2 flex items-center gap-1">
+              <Filter size={11} />
+              Showing {filtered.length} of {records.length} records
+            </p>
+          )}
         </Card>
 
         {error && (
-          <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm px-4 py-3 rounded-lg">
-            {error}
+          <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-sm px-4 py-3 rounded-xl flex items-center gap-2">
+            <X size={14} /> {error}
           </div>
         )}
 
         {/* Table */}
         <Card>
-          {loading ? (
-            <div className="flex items-center justify-center py-16"><Spinner size="lg" /></div>
-          ) : filtered.length === 0 ? (
-            <EmptyState
-              icon={tab === 'budgets' ? '💼' : tab === 'income' ? '💵' : '💸'}
-              title={`No ${tab} found`}
-              message={tab === 'expenses' && budgets.length === 0 && isAdmin
-                ? 'Create a budget first in the Budgets tab.'
-                : undefined}
-            />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50 border-b border-gray-100">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-50 border-b border-gray-100 sticky top-0 z-10">
+                <tr>
+                  {columns.map((col) => (
+                    <th key={col} className="text-left px-5 py-3.5 text-xs font-semibold text-gray-500 uppercase tracking-wide whitespace-nowrap">
+                      {col.replace(/_/g, ' ')}
+                    </th>
+                  ))}
+                  {isAdmin && (
+                    <th className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                      Actions
+                    </th>
+                  )}
+                </tr>
+              </thead>
+              <tbody>
+                {loading ? (
+                  Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} cols={columns.length + (isAdmin ? 1 : 0)} />)
+                ) : filtered.length === 0 ? (
                   <tr>
-                    {columns.map((col) => (
-                      <th key={col} className="text-left px-5 py-3 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                        {col.replace(/_/g, ' ')}
-                      </th>
-                    ))}
-                    {isAdmin && <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Actions</th>}
+                    <td colSpan={columns.length + (isAdmin ? 1 : 0)}>
+                      <EmptyState
+                        icon={tab === 'budgets' ? '💼' : tab === 'income' ? '💵' : '💸'}
+                        title={`No ${tab} found`}
+                        message={
+                          hasFilters
+                            ? 'Try clearing your filters.'
+                            : tab === 'expenses' && budgets.length === 0 && isAdmin
+                              ? 'Create a budget first in the Budgets tab.'
+                              : undefined
+                        }
+                        action={hasFilters ? (
+                          <Button variant="secondary" size="sm" onClick={clearFilters}>
+                            <X size={13} /> Clear filters
+                          </Button>
+                        ) : undefined}
+                      />
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-50">
-                  {filtered.map((record) => (
-                    <tr key={record.id} className="hover:bg-gray-50 transition-colors">
+                ) : (
+                  filtered.map((record, idx) => (
+                    <tr
+                      key={record.id}
+                      className={`transition-colors hover:bg-blue-50/40 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'}`}
+                    >
                       {columns.map((col) => (
                         <td key={col} className="px-5 py-3.5 text-gray-700 max-w-xs truncate">
                           {renderCell(record[col])}
@@ -222,17 +273,17 @@ export default function Records() {
                       ))}
                       {isAdmin && (
                         <td className="px-5 py-3.5 text-right">
-                          <Button variant="danger" size="sm" onClick={() => handleDelete(record.id)}>
+                          <Button variant="danger" size="xs" onClick={() => handleDelete(record.id)}>
                             Delete
                           </Button>
                         </td>
                       )}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </Card>
       </div>
 
@@ -240,51 +291,49 @@ export default function Records() {
       {showForm && (
         <Modal title={addLabel} onClose={() => setShowForm(false)}>
           {formError && (
-            <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3 py-2.5 rounded-lg whitespace-pre-wrap">
+            <div className="mb-4 bg-rose-50 border border-rose-200 text-rose-700 text-xs px-3 py-2.5 rounded-xl whitespace-pre-wrap">
               {formError}
             </div>
           )}
           <form onSubmit={handleCreate} className="space-y-4">
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Title</label>
-              <input required type="text" value={formData.title || ''} onChange={field('title')} className={inputCls} />
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Title</label>
+              <input required type="text" value={formData.title || ''} onChange={field('title')} className={inputCls} placeholder="Enter title" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">
                 {tab === 'budgets' ? 'Total Amount' : 'Amount'}
               </label>
               <input required type="number" step="0.01" min="0.01"
                 value={tab === 'budgets' ? formData.total_amount || '' : formData.amount || ''}
                 onChange={field(tab === 'budgets' ? 'total_amount' : 'amount')}
-                className={inputCls} />
+                className={inputCls} placeholder="0.00" />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">Description (optional)</label>
-              <input type="text" value={formData.desc || ''} onChange={field('desc')} className={inputCls} />
+              <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Description <span className="text-gray-400 normal-case font-normal">(optional)</span></label>
+              <input type="text" value={formData.desc || ''} onChange={field('desc')} className={inputCls} placeholder="Add a note…" />
             </div>
 
             {tab === 'budgets' && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">End Date</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">End Date</label>
                 <input required type="datetime-local" value={formData.to || ''} onChange={field('to')} className={inputCls} />
               </div>
             )}
 
             {tab === 'expenses' && (
               <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Budget</label>
+                <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Budget</label>
                 {budgets.length === 0 ? (
-                  <p className="text-xs text-amber-600 bg-amber-50 border border-amber-200 px-3 py-2 rounded-lg">
-                    No budgets yet — go to the Budgets tab and create one first.
-                  </p>
+                  <div className="text-xs text-amber-700 bg-amber-50 border border-amber-200 px-3 py-2.5 rounded-xl">
+                    No budgets yet — switch to the <strong>Budgets</strong> tab and create one first.
+                  </div>
                 ) : (
-                  <select required value={formData.budget || ''} onChange={field('budget')}
-                    className={inputCls + ' bg-white'}>
-                    <option value="">Select a budget</option>
+                  <select required value={formData.budget || ''} onChange={field('budget')} className={inputCls + ' bg-white'}>
+                    <option value="">Select a budget…</option>
                     {budgets.map((b) => (
                       <option key={b.id} value={b.id}>
-                        {b.title} — ${Number(b.amount_left ?? b.total_amount).toFixed(2)} left
-                        {b.has_expired ? ' (expired)' : ''}
+                        {b.title} — ${Number(b.amount_left ?? b.total_amount).toFixed(2)} left{b.has_expired ? ' (expired)' : ''}
                       </option>
                     ))}
                   </select>
@@ -293,8 +342,13 @@ export default function Records() {
             )}
 
             <div className="flex gap-3 pt-2">
-              <Button type="submit" disabled={submitting || (tab === 'expenses' && budgets.length === 0)} className="flex-1 justify-center">
-                {submitting ? 'Saving…' : 'Save'}
+              <Button
+                type="submit"
+                loading={submitting}
+                disabled={tab === 'expenses' && budgets.length === 0}
+                className="flex-1 justify-center"
+              >
+                Save
               </Button>
               <Button type="button" variant="outline" onClick={() => setShowForm(false)} className="flex-1 justify-center">
                 Cancel

@@ -1,5 +1,6 @@
 import { createContext, useContext, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import toast from 'react-hot-toast'
 import { loginRequest, registerRequest } from '../api/auth'
 
 const AuthContext = createContext(null)
@@ -27,6 +28,7 @@ export function AuthProvider({ children }) {
       const userData = res.data.user ?? { username }
       localStorage.setItem('user', JSON.stringify(userData))
       setUser(userData)
+      toast.success(`Welcome back, ${userData.username ?? 'there'}!`)
       navigate('/dashboard')
     } catch (err) {
       const msg =
