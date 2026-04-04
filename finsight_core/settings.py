@@ -3,19 +3,20 @@ from datetime import timedelta
 import os
 from dotenv import load_dotenv
 
-ALLOWED_HOSTS = config('ALLOWED_HOSTS').split(',')
-
-# Load .env from project root (FinSight-main/)
-load_dotenv(Path(__file__).resolve().parent.parent / '.env')
-
+# ── Base Dir ────────────────────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# ── Security ──────────────────────────────────────────────────────────────────
+# Load .env
+load_dotenv(BASE_DIR / '.env')
+
+# ── Security ────────────────────────────────────────────────────────────────
 SECRET_KEY = os.getenv('SECRET_KEY', 'dev-key-change-in-production')
-DEBUG = os.getenv('DEBUG', 'True') == 'True'
+
+DEBUG = os.getenv('DEBUG', 'False') == 'True'
+
 ALLOWED_HOSTS = os.getenv('ALLOWED_HOSTS', '127.0.0.1,localhost').split(',')
 
-# ── Installed Apps ────────────────────────────────────────────────────────────
+# ── Installed Apps ──────────────────────────────────────────────────────────
 INSTALLED_APPS = [
     'django.contrib.admin',
     'django.contrib.auth',
@@ -23,21 +24,23 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+
     'rest_framework',
     'rest_framework_simplejwt',
     'corsheaders',
     'django_filters',
+
     'users.apps.UsersConfig',
     'records.apps.RecordsConfig',
     'analytics',
     'core',
-    'django.contrib.staticfiles',
 ]
 
-# ── Middleware ────────────────────────────────────────────────────────────────
+# ── Middleware ──────────────────────────────────────────────────────────────
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',  # 🔥 added for static files
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -48,7 +51,7 @@ MIDDLEWARE = [
 
 ROOT_URLCONF = 'finsight_core.urls'
 
-# ── REST Framework ────────────────────────────────────────────────────────────
+# ── REST Framework ──────────────────────────────────────────────────────────
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework_simplejwt.authentication.JWTAuthentication',
@@ -75,7 +78,7 @@ REST_FRAMEWORK = {
     },
 }
 
-# ── Templates ─────────────────────────────────────────────────────────────────
+# ── Templates ───────────────────────────────────────────────────────────────
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
@@ -94,15 +97,15 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'finsight_core.wsgi.application'
 
-# ── Database ──────────────────────────────────────────────────────────────────
+# ── Database ────────────────────────────────────────────────────────────────
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
+        'ENGINE': 'django.db.backends.sqlite3',  # fine for assignment
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
 
-# ── Auth ──────────────────────────────────────────────────────────────────────
+# ── Auth ────────────────────────────────────────────────────────────────────
 AUTH_USER_MODEL = 'users.User'
 
 AUTH_PASSWORD_VALIDATORS = [
@@ -112,35 +115,41 @@ AUTH_PASSWORD_VALIDATORS = [
     {'NAME': 'django.contrib.auth.password_validation.NumericPasswordValidator'},
 ]
 
-# ── Internationalisation ──────────────────────────────────────────────────────
+# ── Internationalisation ────────────────────────────────────────────────────
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
 USE_I18N = True
 USE_TZ = True
 
-# ── Static & Media ────────────────────────────────────────────────────────────
+# ── Static & Media ──────────────────────────────────────────────────────────
 STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
+
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
-STATIC_ROOT = BASE_DIR / "staticfiles"
+
+# 🔥 important for whitenoise
+STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
-# ── CORS ──────────────────────────────────────────────────────────────────────
-_cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
-if _cors_origins:
-    CORS_ALLOWED_ORIGINS = [o.strip() for o in _cors_origins.split(',') if o.strip()]
-else:
-    CORS_ALLOW_ALL_ORIGINS = True   # fallback for local dev with no env set
+# ── CORS ────────────────────────────────────────────────────────────────────
+cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', '')
 
-# ── JWT ───────────────────────────────────────────────────────────────────────
+if cors_origins:
+    CORS_ALLOWED_ORIGINS = [o.strip() for o in cors_origins.split(',') if o.strip()]
+else:
+    CORS_ALLOW_ALL_ORIGINS = True  # only for dev
+
+# ── JWT ─────────────────────────────────────────────────────────────────────
 SIMPLE_JWT = {
-    'ACCESS_TOKEN_LIFETIME':  timedelta(minutes=int(os.getenv('ACCESS_TOKEN_LIFETIME_MINUTES', '30'))),
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=int(os.getenv('ACCESS_TOKEN_LIFETIME_MINUTES', '30'))),
     'REFRESH_TOKEN_LIFETIME': timedelta(days=int(os.getenv('REFRESH_TOKEN_LIFETIME_DAYS', '7'))),
     'ROTATE_REFRESH_TOKENS': False,
     'AUTH_HEADER_TYPES': ('Bearer',),
 }
 
+# ── CSRF ────────────────────────────────────────────────────────────────────
 CSRF_TRUSTED_ORIGINS = [
     "https://*.onrender.com",
     "https://*.vercel.app"
