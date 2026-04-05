@@ -1,9 +1,10 @@
 import api from './axios'
 
-
-export const createIncome = (data)    => api.post('/records/income', data)
-export const updateIncome = (id, data)=> api.put(`/records/income/${id}`, data)
-export const deleteIncome = (id)      => api.delete(`/records/income/${id}`)
+// ── Income ────────────────────────────────────────────────────────────────────
+export const getIncome    = ()         => api.get('/records/income')
+export const createIncome = (data)     => api.post('/records/income', data)
+export const updateIncome = (id, data) => api.put(`/records/income/${id}`, data)
+export const deleteIncome = (id)       => api.delete(`/records/income/${id}`)
 
 
 const toForm = (data) => {
