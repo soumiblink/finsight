@@ -9,7 +9,7 @@ from django.db.models.fields.files import ImageFieldFile
 
 
 def delete_photoURL(photoURL: ImageFieldFile, user: User):
-    """Delete the image file from local storage."""
+   
     try:
         if photoURL and photoURL.name:
             photoURL.delete(save=False)
@@ -18,7 +18,7 @@ def delete_photoURL(photoURL: ImageFieldFile, user: User):
 
 
 def resize_photo(photo: ImageFieldFile, user: User, resize: bool = True):
-    """Resize and re-save image to local storage."""
+   
     try:
         img = Image.open(photo).convert("RGB")
         if img.size > (512, 512) and resize:

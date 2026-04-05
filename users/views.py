@@ -13,7 +13,7 @@ from .serializers import (
 User = get_user_model()
 
 
-# ── Auth ──────────────────────────────────────────────────────────────────────
+# Auth 
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
@@ -51,7 +51,7 @@ def login(request):
     })
 
 
-# ── Current user ──────────────────────────────────────────────────────────────
+#  Current user 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -59,7 +59,7 @@ def me(request):
     return Response(UserSerializer(request.user).data)
 
 
-# ── Admin: user management ────────────────────────────────────────────────────
+#  Admin
 
 @api_view(['GET'])
 @permission_classes([IsAdmin])

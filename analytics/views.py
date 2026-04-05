@@ -66,10 +66,7 @@ def monthly_trends(request):
 @api_view(['GET'])
 @permission_classes([IsViewerOrAbove])
 def recent_activity(request):
-    """
-    Returns the 10 most recent income and expense records combined,
-    each tagged with a 'record_type' field for client-side distinction.
-    """
+  
     limit = int(request.query_params.get('limit', 10))
 
     recent_income = (
