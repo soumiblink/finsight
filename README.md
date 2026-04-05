@@ -2,6 +2,9 @@
 
 A Finance Data Processing and Access Control Backend built with Django REST Framework.
 
+**Live Demo:** [https://finsight-brown.vercel.app](https://finsight-brown.vercel.app)  
+**API Base URL:** [https://finsight-cv67.onrender.com/api](https://finsight-cv67.onrender.com/api)
+
 ---
 
 ## Overview
