@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import {
   AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
-  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
 } from 'recharts'
 import { TrendingUp, TrendingDown, Wallet, RefreshCw } from 'lucide-react'
 import Layout from '../components/Layout'
@@ -13,21 +13,30 @@ import EmptyState from '../components/ui/EmptyState'
 import { useAuth } from '../context/AuthContext'
 import { getAnalyticsSummary, getAnalyticsInsights, getMonthlyTrends } from '../api/analytics'
 
-const PIE_COLORS = ['#3b82f6','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16']
+const PIE_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16']
 
 const fmtCurrency = (v) =>
-  `$${Number(v).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`
+  Number(v).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null
   return (
-    <div className="bg-white border border-gray-100 rounded-xl shadow-lg px-4 py-3 text-sm">
-      <p className="font-semibold text-gray-700 mb-1">{label}</p>
+    <div className="bg-slate-800 border border-slate-700 rounded-xl shadow-xl px-4 py-3 text-sm">
+      <p className="font-semibold text-slate-300 mb-1.5 text-xs uppercase tracking-wide">{label}</p>
       {payload.map((p, i) => (
-        <p key={i} style={{ color: p.color }} className="font-medium">
-          {p.name}: {fmtCurrency(p.value)}
+        <p key={i} style={{ color: p.color }} className="font-semibold text-sm">
+          {p.name}: <span className="tabular-nums">{fmtCurrency(p.value)}</span>
         </p>
       ))}
+    </div>
+  )
+}
+
+function CardHeader({ title, subtitle }) {
+  return (
+    <div className="px-5 py-4 border-b border-slate-800/80">
+      <p className="text-sm font-semibold text-slate-200 tracking-tight">{title}</p>
+      {subtitle && <p className="text-xs text-slate-500 mt-0.5">{subtitle}</p>}
     </div>
   )
 }
@@ -58,13 +67,11 @@ export default function Dashboard() {
 
   useEffect(() => { load() }, [canSeeAnalytics])
 
-  // Shape trends for recharts
   const trendData = trends.map((r) => ({
     month: r.month ? new Date(r.month).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) : '—',
     expense: Number(r.total) || 0,
   }))
 
-  // Shape insights for pie
   const pieData = insights.map((r) => ({
     name: r.categories__title ?? 'Uncategorized',
     value: Number(r.total) || 0,
@@ -72,48 +79,48 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="p-6 lg:p-8 max-w-7xl mx-auto">
+      <div className="px-4 md:px-8 py-6 max-w-7xl mx-auto space-y-6">
 
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
+        {/* Page header */}
+        <div className="flex items-center justify-between pb-4 border-b border-slate-800/60">
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
-            <p className="text-gray-500 text-sm mt-0.5">
-              Welcome back, <span className="font-semibold text-gray-700">{user?.username}</span>
+            <h1 className="text-xl font-bold text-slate-100 tracking-tight">Dashboard</h1>
+            <p className="text-slate-500 text-sm mt-0.5">
+              Welcome back, <span className="text-slate-300 font-medium">{user?.username}</span>
             </p>
           </div>
           {canSeeAnalytics && (
             <Button variant="secondary" size="sm" onClick={load} loading={loading}>
-              <RefreshCw size={14} />
+              <RefreshCw size={13} className={loading ? 'animate-spin' : ''} />
               Refresh
             </Button>
           )}
         </div>
 
-        {/* Viewer locked state */}
+        {/* Viewer locked */}
         {!canSeeAnalytics && (
           <Card className="p-12 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-gray-100 flex items-center justify-center text-3xl mx-auto mb-4">🔒</div>
-            <h2 className="text-lg font-semibold text-gray-800">Analytics Restricted</h2>
-            <p className="text-gray-400 text-sm mt-2 max-w-sm mx-auto">
-              Your role (<span className="font-semibold capitalize text-gray-600">{role}</span>) does not have access to analytics.
-              Ask an admin to upgrade your role to <span className="font-semibold text-blue-600">analyst</span> or <span className="font-semibold text-purple-600">admin</span>.
+            <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700/50 flex items-center justify-center text-2xl mx-auto mb-4">🔒</div>
+            <h2 className="text-base font-semibold text-slate-200">Analytics Restricted</h2>
+            <p className="text-slate-500 text-sm mt-2 max-w-sm mx-auto leading-relaxed">
+              Your role (<span className="font-semibold capitalize text-slate-300">{role}</span>) doesn't have access to analytics.
+              Ask an admin to upgrade to <span className="font-semibold text-indigo-400">analyst</span> or <span className="font-semibold text-violet-400">admin</span>.
             </p>
           </Card>
         )}
 
-        {/* Skeleton loading */}
+        {/* Skeleton */}
         {canSeeAnalytics && loading && (
           <>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {[0,1,2].map((i) => <SkeletonCard key={i} />)}
             </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {[0,1].map((i) => (
-                <Card key={i} className="p-6">
+                <Card key={i} className="p-5">
                   <div className="animate-pulse space-y-3">
-                    <div className="h-4 bg-gray-200 rounded w-40" />
-                    <div className="h-48 bg-gray-100 rounded-xl" />
+                    <div className="h-3.5 bg-slate-800 rounded-full w-36" />
+                    <div className="h-44 bg-slate-800/60 rounded-xl mt-4" />
                   </div>
                 </Card>
               ))}
@@ -125,63 +132,43 @@ export default function Dashboard() {
         {canSeeAnalytics && !loading && (
           <>
             {/* Stat cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-              <StatCard
-                label="Total Income"
-                value={summary?.total_income}
-                Icon={TrendingUp}
-                accent="green"
-              />
-              <StatCard
-                label="Total Expense"
-                value={summary?.total_expense}
-                Icon={TrendingDown}
-                accent="red"
-              />
-              <StatCard
-                label="Net Balance"
-                value={summary?.balance}
-                Icon={Wallet}
-                accent="blue"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <StatCard label="Total Income"   value={summary?.total_income}   Icon={TrendingUp}   accent="green" />
+              <StatCard label="Total Expense"  value={summary?.total_expense}  Icon={TrendingDown} accent="red"   />
+              <StatCard label="Net Balance"    value={summary?.balance}        Icon={Wallet}       accent="blue"  />
             </div>
 
             {/* Charts row */}
-            <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 mb-6">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
-              {/* Monthly Trends — Area Chart (wider) */}
+              {/* Area chart */}
               <Card className="lg:col-span-3">
-                <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between">
-                  <div>
-                    <h3 className="text-sm font-semibold text-gray-800">Monthly Expense Trends</h3>
-                    <p className="text-xs text-gray-400 mt-0.5">Spending over time</p>
-                  </div>
-                </div>
-                <div className="p-6">
+                <CardHeader title="Monthly Expense Trends" subtitle="Spending over time" />
+                <div className="p-5">
                   {trendData.length === 0 ? (
                     <EmptyState icon="📅" title="No trend data yet" message="Add expenses to see monthly trends." />
                   ) : (
                     <ResponsiveContainer width="100%" height={220}>
-                      <AreaChart data={trendData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
+                      <AreaChart data={trendData} margin={{ top: 4, right: 4, left: -12, bottom: 0 }}>
                         <defs>
                           <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%"  stopColor="#3b82f6" stopOpacity={0.15} />
-                            <stop offset="95%" stopColor="#3b82f6" stopOpacity={0} />
+                            <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.2} />
+                            <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                           </linearGradient>
                         </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
-                        <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
+                        <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}`} />
                         <Tooltip content={<CustomTooltip />} />
                         <Area
                           type="monotone"
                           dataKey="expense"
                           name="Expense"
-                          stroke="#3b82f6"
-                          strokeWidth={2.5}
+                          stroke="#6366f1"
+                          strokeWidth={2}
                           fill="url(#expGrad)"
-                          dot={{ r: 3, fill: '#3b82f6', strokeWidth: 0 }}
-                          activeDot={{ r: 5, fill: '#3b82f6' }}
+                          dot={{ r: 3, fill: '#6366f1', strokeWidth: 0 }}
+                          activeDot={{ r: 5, fill: '#6366f1', strokeWidth: 0 }}
                         />
                       </AreaChart>
                     </ResponsiveContainer>
@@ -189,12 +176,9 @@ export default function Dashboard() {
                 </div>
               </Card>
 
-              {/* Category Breakdown — Pie Chart (narrower) */}
+              {/* Pie chart */}
               <Card className="lg:col-span-2">
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <h3 className="text-sm font-semibold text-gray-800">By Category</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Expense distribution</p>
-                </div>
+                <CardHeader title="By Category" subtitle="Expense distribution" />
                 <div className="p-4">
                   {pieData.length === 0 ? (
                     <EmptyState icon="📂" title="No category data" message="Categorize expenses to see breakdown." />
@@ -206,7 +190,7 @@ export default function Dashboard() {
                             data={pieData}
                             cx="50%"
                             cy="50%"
-                            innerRadius={45}
+                            innerRadius={46}
                             outerRadius={72}
                             paddingAngle={3}
                             dataKey="value"
@@ -215,18 +199,17 @@ export default function Dashboard() {
                               <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                             ))}
                           </Pie>
-                          <Tooltip formatter={(v) => fmtCurrency(v)} />
+                          <Tooltip formatter={(v) => fmtCurrency(v)} contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: '12px', fontSize: '12px' }} />
                         </PieChart>
                       </ResponsiveContainer>
-                      {/* Legend */}
-                      <div className="mt-2 space-y-1.5 max-h-28 overflow-y-auto pr-1">
+                      <div className="mt-3 space-y-1.5 max-h-28 overflow-y-auto pr-1">
                         {pieData.map((d, i) => (
                           <div key={i} className="flex items-center justify-between text-xs">
                             <div className="flex items-center gap-2 min-w-0">
-                              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
-                              <span className="text-gray-600 truncate">{d.name}</span>
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: PIE_COLORS[i % PIE_COLORS.length] }} />
+                              <span className="text-slate-400 truncate">{d.name}</span>
                             </div>
-                            <span className="font-semibold text-gray-800 ml-2 flex-shrink-0">{fmtCurrency(d.value)}</span>
+                            <span className="font-semibold text-slate-200 ml-2 flex-shrink-0 tabular-nums">{fmtCurrency(d.value)}</span>
                           </div>
                         ))}
                       </div>
@@ -236,21 +219,18 @@ export default function Dashboard() {
               </Card>
             </div>
 
-            {/* Category Bar Chart */}
+            {/* Bar chart */}
             {pieData.length > 0 && (
               <Card>
-                <div className="px-6 py-4 border-b border-gray-100">
-                  <h3 className="text-sm font-semibold text-gray-800">Category Comparison</h3>
-                  <p className="text-xs text-gray-400 mt-0.5">Total spend per category</p>
-                </div>
-                <div className="p-6">
+                <CardHeader title="Category Comparison" subtitle="Total spend per category" />
+                <div className="p-5">
                   <ResponsiveContainer width="100%" height={200}>
-                    <BarChart data={pieData} margin={{ top: 4, right: 4, left: -10, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" vertical={false} />
-                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+                    <BarChart data={pieData} margin={{ top: 4, right: 4, left: -12, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" vertical={false} />
+                      <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}`} />
                       <Tooltip content={<CustomTooltip />} />
-                      <Bar dataKey="value" name="Amount" radius={[6, 6, 0, 0]}>
+                      <Bar dataKey="value" name="Amount" radius={[5, 5, 0, 0]}>
                         {pieData.map((_, i) => (
                           <Cell key={i} fill={PIE_COLORS[i % PIE_COLORS.length]} />
                         ))}

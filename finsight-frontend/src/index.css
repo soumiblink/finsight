@@ -1,16 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400;0,14..32,500;0,14..32,600;0,14..32,700;0,14..32,800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  body {
+    @apply bg-slate-950 text-slate-100 antialiased;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  ::selection {
+    @apply bg-indigo-500/30 text-indigo-100;
+  }
+
+  /* Native date/time inputs — dark theme */
+  input[type="date"],
+  input[type="datetime-local"] {
+    color-scheme: dark;
+  }
+}
+
 @layer utilities {
   .animate-in {
-    animation: animateIn 0.15s ease-out;
+    animation: animateIn 0.15s ease-out both;
   }
   .fade-in {
-    animation: fadeIn 0.15s ease-out;
+    animation: fadeIn 0.15s ease-out both;
   }
   .zoom-in-95 {
-    animation: zoomIn95 0.15s ease-out;
+    animation: zoomIn95 0.15s ease-out both;
   }
 }
 
@@ -18,22 +42,23 @@
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-
 @keyframes fadeIn {
   from { opacity: 0; }
   to   { opacity: 1; }
 }
-
 @keyframes zoomIn95 {
   from { opacity: 0; transform: scale(0.95); }
   to   { opacity: 1; transform: scale(1); }
 }
 
-/* Smooth scrollbar */
-::-webkit-scrollbar { width: 6px; height: 6px; }
+/* Scrollbar */
+::-webkit-scrollbar       { width: 4px; height: 4px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 9999px; }
-::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+::-webkit-scrollbar-thumb { background: #1e293b; border-radius: 9999px; }
+::-webkit-scrollbar-thumb:hover { background: #334155; }
 
-/* Recharts tooltip */
+/* Recharts overrides */
 .recharts-tooltip-wrapper { outline: none !important; }
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line { stroke: #1e293b !important; }
+.recharts-text { fill: #64748b !important; }

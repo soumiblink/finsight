@@ -1,14 +1,14 @@
 const styles = {
-  admin:    'bg-purple-100 text-purple-700 ring-purple-200',
-  analyst:  'bg-blue-100   text-blue-700   ring-blue-200',
-  viewer:   'bg-gray-100   text-gray-600   ring-gray-200',
-  active:   'bg-emerald-100 text-emerald-700 ring-emerald-200',
-  inactive: 'bg-rose-100   text-rose-600   ring-rose-200',
+  admin:    'bg-violet-500/15 text-violet-300 ring-violet-500/30',
+  analyst:  'bg-indigo-500/15 text-indigo-300 ring-indigo-500/30',
+  viewer:   'bg-slate-500/15  text-slate-400  ring-slate-600/40',
+  active:   'bg-emerald-500/15 text-emerald-300 ring-emerald-500/30',
+  inactive: 'bg-rose-500/15   text-rose-300   ring-rose-500/30',
 }
 
 export default function Badge({ label, type }) {
   return (
-    <span className={`inline-flex items-center text-xs font-semibold px-2.5 py-0.5 rounded-full capitalize ring-1 ${styles[type] || styles.viewer}`}>
+    <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ring-1 leading-5 ${styles[type] || styles.viewer}`}>
       {label}
     </span>
   )
