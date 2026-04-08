@@ -13,6 +13,23 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ['id', 'username', 'password', 'role']
 
+    def validate_username(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Username must not be blank.")
+        if User.objects.filter(username__iexact=value.strip()).exists():
+            raise serializers.ValidationError("A user with that username already exists.")
+        return value.strip()
+
+    def validate_password(self, value):
+        if len(value) < 6:
+            raise serializers.ValidationError("Password must be at least 6 characters.")
+        return value
+
+    def validate_role(self, value):
+        if value and value not in VALID_ROLES:
+            raise serializers.ValidationError(f"Role must be one of: {', '.join(VALID_ROLES)}.")
+        return value
+
     def create(self, validated_data):
         return User.objects.create_user(
             username=validated_data['username'],
@@ -24,6 +41,16 @@ class RegisterSerializer(serializers.ModelSerializer):
 class LoginSerializer(serializers.Serializer):
     username = serializers.CharField()
     password = serializers.CharField()
+
+    def validate_username(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Username is required.")
+        return value.strip()
+
+    def validate_password(self, value):
+        if not value:
+            raise serializers.ValidationError("Password is required.")
+        return value
 
 
 class UserSerializer(serializers.ModelSerializer):

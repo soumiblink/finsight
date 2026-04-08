@@ -15,6 +15,13 @@ class BudgetSerializer(serializers.ModelSerializer):
             'user': {'write_only': True}
         }
 
+    def validate_total_amount(self, value):
+        if value is None:
+            raise serializers.ValidationError("Amount must not be null.")
+        if value <= 0:
+            raise serializers.ValidationError("Amount must be greater than 0.")
+        return value
+
 
 class SourceSerializer(serializers.ModelSerializer):
 
@@ -60,9 +67,21 @@ class CreateIncomeSerializer(serializers.ModelSerializer):
         }
 
     def validate_amount(self, value):
+        if value is None:
+            raise serializers.ValidationError("Amount must not be null.")
         if value <= 0:
-            raise serializers.ValidationError("Amount must be positive")
+            raise serializers.ValidationError("Amount must be greater than 0.")
         return value
+
+    def validate_title(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Title must not be blank.")
+        return value.strip()
+
+    def validate(self, data):
+        if 'amount' not in data or data['amount'] is None:
+            raise serializers.ValidationError({"amount": "Amount is required."})
+        return data
 
 
 class ExpenseSerializer(serializers.ModelSerializer):
@@ -88,16 +107,30 @@ class CreateExpenseSerializer(serializers.ModelSerializer):
         }
 
     def validate_amount(self, value):
+        if value is None:
+            raise serializers.ValidationError("Amount must not be null.")
         if value <= 0:
-            raise serializers.ValidationError("Amount must be positive")
+            raise serializers.ValidationError("Amount must be greater than 0.")
         return value
 
+    def validate_title(self, value):
+        if not value or not value.strip():
+            raise serializers.ValidationError("Title must not be blank.")
+        return value.strip()
+
     def validate(self, attrs):
-        amount: float = attrs['amount']
-        budget: Budget = attrs['budget']
+        amount: float = attrs.get('amount')
+        budget: Budget = attrs.get('budget')
+
+        if amount is None:
+            raise serializers.ValidationError({"amount": "Amount is required."})
+        if budget is None:
+            raise serializers.ValidationError({"budget": "Budget is required."})
+
         if budget.amount_left < amount:
             raise ValidationError(
-                detail=f"This amount: {amount} is too large to fit in budget: {budget}")
+                detail=f"Amount {amount} exceeds remaining budget balance of {budget.amount_left:.2f}."
+            )
         return super().validate(attrs)
 
 
@@ -110,6 +143,13 @@ class UpdateExpenseSerializer(serializers.ModelSerializer):
             'user': {'write_only': True}
         }
 
+    def validate_amount(self, value):
+        if value is None:
+            raise serializers.ValidationError("Amount must not be null.")
+        if value <= 0:
+            raise serializers.ValidationError("Amount must be greater than 0.")
+        return value
+
     def update(self, instance: Expenses, validated_data):
         old_amount: float = instance.amount
         old_budget: Budget = instance.budget
@@ -119,10 +159,12 @@ class UpdateExpenseSerializer(serializers.ModelSerializer):
         if old_budget == budget:
             if budget.amount_left + old_amount < amount:
                 raise ValidationError(
-                    detail=f"This amount: {amount} is too large to fit in budget: {budget}")
+                    detail=f"Amount {amount} exceeds remaining budget balance of {budget.amount_left + old_amount:.2f}."
+                )
         else:
             if budget.amount_left < amount:
                 raise ValidationError(
-                    detail=f"This amount: {amount} is too large to fit in budget: {budget}")
+                    detail=f"Amount {amount} exceeds remaining budget balance of {budget.amount_left:.2f}."
+                )
 
         return super().update(instance, validated_data)

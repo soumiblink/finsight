@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate, get_user_model
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
+from rest_framework import status
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from core.permissions import IsAdmin
@@ -13,16 +14,22 @@ from .serializers import (
 User = get_user_model()
 
 
-# Auth 
+# ── Auth ──────────────────────────────────────────────────────────────────────
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def register(request):
     serializer = RegisterSerializer(data=request.data)
-    if serializer.is_valid():
-        serializer.save()
-        return Response(serializer.data, status=201)
-    return Response(serializer.errors, status=400)
+    if not serializer.is_valid():
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+    user = serializer.save()
+    refresh = RefreshToken.for_user(user)
+    return Response({
+        "user": UserSerializer(user).data,
+        "access": str(refresh.access_token),
+        "refresh": str(refresh),
+    }, status=status.HTTP_201_CREATED)
 
 
 @api_view(['POST'])
@@ -30,7 +37,7 @@ def register(request):
 def login(request):
     serializer = LoginSerializer(data=request.data)
     if not serializer.is_valid():
-        return Response(serializer.errors, status=400)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     user = authenticate(
         username=serializer.validated_data['username'],
@@ -38,20 +45,20 @@ def login(request):
     )
 
     if not user:
-        return Response({"error": "Invalid credentials"}, status=401)
+        return Response({"error": "Invalid credentials."}, status=status.HTTP_401_UNAUTHORIZED)
 
     if not user.is_active:
-        return Response({"error": "Account is disabled"}, status=403)
+        return Response({"error": "Account is disabled."}, status=status.HTTP_403_FORBIDDEN)
 
     refresh = RefreshToken.for_user(user)
     return Response({
+        "user": UserSerializer(user).data,
         "access": str(refresh.access_token),
         "refresh": str(refresh),
-        "user": UserSerializer(user).data,
-    })
+    }, status=status.HTTP_200_OK)
 
 
-#  Current user 
+# ── Current user ──────────────────────────────────────────────────────────────
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
@@ -59,12 +66,13 @@ def me(request):
     return Response(UserSerializer(request.user).data)
 
 
-#  Admin
+# ── Admin ─────────────────────────────────────────────────────────────────────
 
 @api_view(['GET'])
 @permission_classes([IsAdmin])
 def get_users(request):
-    return Response(UserSerializer(User.objects.all(), many=True).data)
+    users = User.objects.only('id', 'username', 'email', 'role', 'is_active').all()
+    return Response(UserSerializer(users, many=True).data)
 
 
 @api_view(['PATCH'])
@@ -73,15 +81,15 @@ def update_role(request, pk):
     try:
         user = User.objects.get(pk=pk)
     except User.DoesNotExist:
-        return Response({"error": "User not found"}, status=404)
+        return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
     serializer = UpdateRoleSerializer(data=request.data)
     if not serializer.is_valid():
-        return Response(serializer.errors, status=400)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     user.role = serializer.validated_data['role']
-    user.save()
-    return Response({"message": "Role updated", "user": UserSerializer(user).data})
+    user.save(update_fields=['role'])
+    return Response({"message": "Role updated.", "user": UserSerializer(user).data})
 
 
 @api_view(['PATCH'])
@@ -90,12 +98,12 @@ def update_status(request, pk):
     try:
         user = User.objects.get(pk=pk)
     except User.DoesNotExist:
-        return Response({"error": "User not found"}, status=404)
+        return Response({"error": "User not found."}, status=status.HTTP_404_NOT_FOUND)
 
     serializer = UpdateStatusSerializer(data=request.data)
     if not serializer.is_valid():
-        return Response(serializer.errors, status=400)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
     user.is_active = serializer.validated_data['is_active']
-    user.save()
-    return Response({"message": "Status updated", "user": UserSerializer(user).data})
+    user.save(update_fields=['is_active'])
+    return Response({"message": "Status updated.", "user": UserSerializer(user).data})

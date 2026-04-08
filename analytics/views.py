@@ -11,6 +11,8 @@ from records.models import Expenses, Income
 from .services import get_summary
 
 
+# ── Existing views (unchanged) ────────────────────────────────────────────────
+
 class SummaryView(APIView):
     permission_classes = [IsAnalystOrAdmin]
 
@@ -66,7 +68,6 @@ def monthly_trends(request):
 @api_view(['GET'])
 @permission_classes([IsViewerOrAbove])
 def recent_activity(request):
-  
     limit = int(request.query_params.get('limit', 10))
 
     recent_income = (
@@ -93,3 +94,111 @@ def recent_activity(request):
     )[:limit]
 
     return Response(combined)
+
+
+# ── NEW: /api/analytics/dashboard/ ───────────────────────────────────────────
+
+@api_view(['GET'])
+@permission_classes([IsAnalystOrAdmin])
+def dashboard(request):
+    """
+    Aggregated dashboard payload.
+
+    Returns:
+        monthly_trends    — income + expense totals grouped by month
+        category_breakdown — expense totals per category
+        recent_activity   — last 5 records (income + expense combined)
+    """
+    user = request.user
+
+    # 1. Monthly trends — income and expense side by side
+    income_by_month = (
+        Income.objects
+        .filter(user=user)
+        .annotate(month=TruncMonth('added_at'))
+        .values('month')
+        .annotate(income=Sum('amount'))
+        .order_by('month')
+    )
+    expense_by_month = (
+        Expenses.objects
+        .filter(user=user)
+        .annotate(month=TruncMonth('added_at'))
+        .values('month')
+        .annotate(expense=Sum('amount'))
+        .order_by('month')
+    )
+
+    # Merge into a single list keyed by month string
+    trends_map = {}
+    for row in income_by_month:
+        key = row['month'].strftime('%b %Y') if row['month'] else '—'
+        trends_map.setdefault(key, {'month': key, 'income': 0, 'expense': 0})
+        trends_map[key]['income'] = round(row['income'] or 0, 2)
+    for row in expense_by_month:
+        key = row['month'].strftime('%b %Y') if row['month'] else '—'
+        trends_map.setdefault(key, {'month': key, 'income': 0, 'expense': 0})
+        trends_map[key]['expense'] = round(row['expense'] or 0, 2)
+
+    monthly_trends_list = sorted(trends_map.values(), key=lambda r: r['month'])
+
+    # 2. Category breakdown
+    category_breakdown = list(
+        Expenses.objects
+        .filter(user=user)
+        .values('categories__title')
+        .annotate(total=Sum('amount'))
+        .order_by('-total')
+    )
+    category_breakdown = [
+        {
+            'category': row['categories__title'] or 'Uncategorized',
+            'total': round(row['total'] or 0, 2),
+        }
+        for row in category_breakdown
+    ]
+
+    # 3. Recent activity — last 5 across income + expense
+    recent_income = list(
+        Income.objects
+        .filter(user=user)
+        .values('id', 'amount', 'added_at')
+        .order_by('-added_at')[:5]
+    )
+    recent_expenses = list(
+        Expenses.objects
+        .filter(user=user)
+        .values('id', 'amount', 'added_at')
+        .order_by('-added_at')[:5]
+    )
+
+    income_activity = [
+        {
+            'id': r['id'],
+            'amount': round(r['amount'] or 0, 2),
+            'type': 'income',
+            'date': r['added_at'].strftime('%Y-%m-%d') if r['added_at'] else None,
+        }
+        for r in recent_income
+    ]
+    expense_activity = [
+        {
+            'id': r['id'],
+            'amount': round(r['amount'] or 0, 2),
+            'type': 'expense',
+            'date': r['added_at'].strftime('%Y-%m-%d') if r['added_at'] else None,
+        }
+        for r in recent_expenses
+    ]
+
+    recent_activity_list = sorted(
+        income_activity + expense_activity,
+        key=lambda r: r['date'] or '',
+        reverse=True,
+    )[:5]
+
+    return Response({
+        'monthly_trends': monthly_trends_list,
+        'category_breakdown': category_breakdown,
+        'recent_activity': recent_activity_list,
+    })
