@@ -67,7 +67,7 @@ export default function Sidebar({ onClose }) {
         ))}
       </nav>
 
-      {/* User footer */}
+      {/* footer */}
       <div className="px-3 py-3 border-t border-slate-800 space-y-1 flex-shrink-0">
         <div className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/40">
           <div className="w-7 h-7 rounded-full bg-gradient-to-br from-indigo-500 to-violet-600 flex items-center justify-center text-[11px] font-bold uppercase flex-shrink-0">

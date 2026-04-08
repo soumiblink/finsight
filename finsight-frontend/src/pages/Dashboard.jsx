@@ -17,10 +17,10 @@ import { SkeletonCard } from '../components/ui/SkeletonRow'
 import { useAuth } from '../context/AuthContext'
 import { getAnalyticsSummary, getDashboard } from '../api/analytics'
 
-// ── Design tokens ─────────────────────────────────────────────────────────────
+
 const PIE_COLORS = ['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#f97316','#84cc16']
 
-// ── Currency formatter ────────────────────────────────────────────────────────
+
 const fmtCurrency = (v, compact = false) =>
   new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -32,7 +32,7 @@ const fmtCurrency = (v, compact = false) =>
 
 const fmtShort = (v) => fmtCurrency(v, true)
 
-// ── Mock fallback data ────────────────────────────────────────────────────────
+
 const MOCK_TRENDS = [
   { month: 'Jan', income: 3200, expense: 1800 },
   { month: 'Feb', income: 2800, expense: 2100 },
@@ -57,7 +57,7 @@ const MOCK_ACTIVITY = [
 ]
 const MOCK_SUMMARY = { total_income: 22700, total_expense: 14050, balance: 8650 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+
 function MockBadge() {
   return (
     <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-0.5 rounded-full">
@@ -101,13 +101,16 @@ function CustomTooltip({ active, payload, label }) {
   )
 }
 
-// ── Smart Insights ────────────────────────────────────────────────────────────
+
+
+//  Smart Insights
 function computeInsights(trendData, pieData, summary) {
   const insights = []
   if (!trendData.length || !summary) return insights
 
   const last = trendData[trendData.length - 1]
   const prev = trendData[trendData.length - 2]
+
 
   // Month-over-month expense change
   if (prev && prev.expense > 0) {
@@ -130,6 +133,8 @@ function computeInsights(trendData, pieData, summary) {
     }
   }
 
+
+
   // Top spending category
   if (pieData.length > 0) {
     const top = [...pieData].sort((a, b) => b.value - a.value)[0]
@@ -140,6 +145,8 @@ function computeInsights(trendData, pieData, summary) {
       text: `${top.name} is your highest expense category at ${fmtCurrency(top.value)}.`,
     })
   }
+
+
 
   // Savings rate
   if (summary.total_income > 0) {
@@ -161,6 +168,8 @@ function computeInsights(trendData, pieData, summary) {
     }
   }
 
+
+
   // Income vs expense balance trend
   if (last) {
     const surplus = last.income - last.expense
@@ -177,7 +186,7 @@ function computeInsights(trendData, pieData, summary) {
   return insights.slice(0, 3)
 }
 
-// ── Activity table row ────────────────────────────────────────────────────────
+// Activity table row 
 function ActivityRow({ item, index }) {
   const isIncome = item.type === 'income'
   const formattedDate = item.date
@@ -212,7 +221,9 @@ function ActivityRow({ item, index }) {
   )
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+
+
+// Main page
 export default function Dashboard() {
   const { user } = useAuth()
   const role = user?.role ?? 'viewer'
@@ -236,7 +247,10 @@ export default function Dashboard() {
 
   useEffect(() => { load() }, [canSeeAnalytics])
 
-  // ── Data shaping with mock fallbacks ──────────────────────────────────────
+
+
+
+  //  Data shaping with mock fallbacks
   const rawTrends = (dashboard?.monthly_trends ?? []).map((r) => ({
     month:   r.month,
     income:  Number(r.income)  || 0,
@@ -264,18 +278,24 @@ export default function Dashboard() {
     balance: r.income - r.expense,
   }))
 
+
+
   // Current month spend from trend data
   const currentMonthExpense = trendData.length > 0 ? trendData[trendData.length - 1].expense : 0
+
+
 
   // Smart insights
   const insights = computeInsights(trendData, pieData, displaySummary)
 
-  // ── Render ────────────────────────────────────────────────────────────────
+
+  // Render 
   return (
     <Layout>
       <div className="px-4 md:px-8 py-6 max-w-7xl mx-auto space-y-6 fade-in">
 
-        {/* Page header */}
+
+        
         <div className="flex items-center justify-between pb-4 border-b border-slate-800/60">
           <div>
             <h1 className="text-xl font-bold text-slate-100 tracking-tight">Dashboard</h1>
@@ -291,7 +311,7 @@ export default function Dashboard() {
           )}
         </div>
 
-        {/* Viewer locked */}
+       
         {!canSeeAnalytics && (
           <Card className="p-12 text-center">
             <div className="w-14 h-14 rounded-2xl bg-slate-800 border border-slate-700/50 flex items-center justify-center text-2xl mx-auto mb-4">🔒</div>
@@ -303,7 +323,7 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* Skeleton */}
+       
         {canSeeAnalytics && loading && (
           <>
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -322,10 +342,10 @@ export default function Dashboard() {
           </>
         )}
 
-        {/* Content */}
+        
         {canSeeAnalytics && !loading && (
           <>
-            {/* ── 4 KPI cards ── */}
+            
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard
                 label="Total Income"
@@ -357,7 +377,7 @@ export default function Dashboard() {
               />
             </div>
 
-            {/* ── Smart Insights ── */}
+            
             {insights.length > 0 && (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 {insights.map((ins, i) => (
@@ -373,10 +393,10 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* ── Row 1: Line chart + Pie ── */}
+           
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
-              {/* Income vs Expense — Line */}
+             
               <Card className="lg:col-span-3">
                 <CardHeader
                   title="Monthly Trends"
@@ -398,7 +418,7 @@ export default function Dashboard() {
                 </div>
               </Card>
 
-              {/* Spending by Category — Pie */}
+            
               <Card className="lg:col-span-2">
                 <CardHeader title="Spending by Category" subtitle="Expense distribution" mock={isPieMock} />
                 <div className="p-4">
@@ -446,10 +466,10 @@ export default function Dashboard() {
               </Card>
             </div>
 
-            {/* ── Row 2: Bar + Net Balance + Activity ── */}
+           
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
-              {/* Category Comparison — Bar */}
+             
               <Card className="lg:col-span-3">
                 <CardHeader title="Category Comparison" subtitle="Total spend per category" mock={isPieMock} />
                 <div className="p-5">
@@ -478,10 +498,10 @@ export default function Dashboard() {
                 </div>
               </Card>
 
-              {/* Right col: Net Balance + Activity */}
+              
               <div className="lg:col-span-2 flex flex-col gap-5">
 
-                {/* Net Balance — Area */}
+       
                 <Card>
                   <CardHeader title="Net Balance Trend" subtitle="Monthly savings" mock={isTrendMock} />
                   <div className="p-4">
@@ -503,7 +523,7 @@ export default function Dashboard() {
                   </div>
                 </Card>
 
-                {/* Recent Activity — table */}
+               
                 <Card className="flex-1">
                   <CardHeader
                     title="Recent Activity"
